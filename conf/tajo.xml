@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<batch>
+
+	<config>
+		<SCHEMA>
+			<COLUNM id="key" />
+			<COLUNM id="value" />
+		</SCHEMA>
+		<DATASET>
+			<DATA key="accesskey" value="AKIAJLRKPW"></DATA>
+			<DATA key="secretkey" value="fuuockdwyFM0cAOdG"></DATA>
+			<DATA key="key_file" value="/securedKeys/aaa.pem"></DATA>
+			<DATA key="username" value="ec2-user"></DATA>
+			<DATA key="master_ip" value="10.218.189.22"></DATA>
+			<DATA key="master_external_ip" value="54.89.238.22"></DATA>
+			<DATA key="instanceNum" value="5"></DATA>
+			<DATA key="ami_id" value="ami-4a930222"></DATA>
+			<DATA key="spot_price" value="0.3"></DATA>
+			
+			<DATA key="common_spec" value="m3.medium"></DATA>
+			<DATA key="spot_spec" value="c3.2xlarge"></DATA>
+			<DATA key="key" value="aaa"></DATA>
+			<DATA key="security_group" value="taas"></DATA>
+			<DATA key="bucket" value="taas-bucket"></DATA>
+			<DATA key="region" value="us-east-1"></DATA>
+			<DATA key="s3_conf" value="s3n://taas-bucket/conf/catalog-site1.xml"></DATA>
+		</DATASET>
+	</config>
+
+<!-- 
+ 
+CREATE EXTERNAL TABLE COHORTS_201411 (user_email TEXT, LAST_ACTION_TIME TEXT, created_at TEXT, GROUP_ID TEXT) 
+	USING CSV WITH ('text.error-tolerance.max-num' = '-1') LOCATION 's3n://tz-tajo/result/';;
+ -->	
+
+	<command>
+		<SCHEMA>
+			<COLUNM id="name" />
+			<COLUNM id="commands" />
+			<COLUNM id="preHandle" />
+			<COLUNM id="postHandle" />
+		</SCHEMA>
+		
+		<!-- define commands -->
+		<DATASET>
+			<DATA name="test" preHandle="" commands="
+			    sudo su;
+			    su - tajo;
+			    cd /home/tajo/tajo/bin/;
+			    ./tsql;
+			    
+			    drop table distinct_tb;;
+					CREATE TABLE distinct_tb (distinct_id text) USING CSV PARTITION BY COLUMN (CNT TEXT);;
+			    INSERT OVERWRITE INTO distinct_tb (distinct_id) select distinct_id from USERS where distinct_id = 'superbowl@gettz.com';;
+			    select * from distinct_tb;;
+			    
+			    \q;
+					exit;
+				" postHandle="" />
+				
+			<DATA name="RAWDATA" preHandle="" commands="
+			    sudo su;
+			    su - tajo;
+			    cd /home/tajo/tajo/bin/;
+			    ./tsql;
+			    
+			    DROP TABLE USERS;;
+
+					CREATE EXTERNAL TABLE USERS (
+					   created_at TIMESTAMP,
+					   user_email TEXT
+					 ) USING JSON LOCATION 's3n://tz-user/user/User.json';;
+					
+			    DROP TABLE action_logs;;
+					
+					CREATE EXTERNAL TABLE action_logs (
+					  castid TEXT,
+					  ``first lockscreen`` TEXT,
+					  starting_unit TEXT,
+					  campaign_id TEXT,
+					  screen_dpi INT, 
+					  mp_lib TEXT,
+					  caster TEXT,
+					  event TEXT,
+					  tutorial TEXT,
+					  city TEXT,
+					  first_name TEXT,
+					  lib_version TEXT,
+					  os_version TEXT,
+					  mp_country_code TEXT,
+					  type TEXT,
+					  email TEXT,
+					  has_telephone TEXT,
+					  screen_width INT,
+					  brand TEXT,
+					  distinct_id TEXT,
+					  manufacturer TEXT,
+					  app_version TEXT,
+					  ``like`` TEXT,
+					  dob TEXT,
+					  gender TEXT,
+					  region TEXT,
+					  wifi TEXT,
+					  has_nfc TEXT,
+					  carrier TEXT,
+					  time TEXT,
+					  action TEXT,
+					  position TEXT,
+					  model TEXT,
+					  screen_height INT,
+					  os TEXT,
+					  createdat TEXT,
+					  ``data usage`` TEXT
+					) USING JSON WITH ('text.error-tolerance.max-num' = '-1') PARTITION BY COLUMN (year TEXT, month TEXT) LOCATION 's3n://tz-tajo/action_logs/';;
+
+			    \q;
+			    wait '> \q';
+			    
+			    exit;
+			    sleep 2;
+			    
+			    finish!;
+				" postHandle="" />				
+				
+			<DATA name="COHORTS" preHandle="RAWDATA" commands="
+			    sudo su;
+			    su - tajo;
+			    cd /home/tajo/tajo/bin/;
+			    ./tsql;
+
+					DROP TABLE COHORTS_${year_month};;
+					
+					CREATE TABLE COHORTS_${year_month} (user_email TEXT, LAST_ACTION_TIME TEXT,
+					created_at TEXT, GROUP_ID TEXT) USING CSV WITH
+					('text.error-tolerance.max-num' = '-1');;					
+					
+					INSERT INTO COHORTS_${year_month} (user_email, LAST_ACTION_TIME, created_at, GROUP_ID)
+					SELECT 
+					  user_email, 
+					  LAST_ACTION_TIME, 
+					  created_at,
+					  CASE
+					  WHEN PERIOD < INTERVAL '1s' THEN 'N/A'
+					  WHEN PERIOD <= INTERVAL '12h' THEN 'C0'
+					  WHEN PERIOD <= INTERVAL '24h' THEN 'C1' 
+					  WHEN PERIOD <= INTERVAL '48h' THEN 'C2'
+					  WHEN PERIOD <= INTERVAL '72h' THEN 'C3'
+					  WHEN PERIOD <= INTERVAL '96h' THEN 'C4'
+					  WHEN PERIOD <= INTERVAL '120h' THEN 'C5'
+					  WHEN PERIOD <= INTERVAL '144h' THEN 'C6'
+					  WHEN PERIOD <= INTERVAL '168h' THEN 'C7'
+					  WHEN PERIOD <= INTERVAL '192h' THEN 'C8'
+					  ELSE 'C9' 
+					  END AS GROUP_ID
+					FROM (
+					  SELECT 
+					    U.user_email, 
+					    LAST_ACTION_TIME, 
+					    created_at,
+					    TO_TIMESTAMP(LAST_ACTION_TIME, 'YYYY-MM-DD HH24:MI:SS.US') - (created_at - INTERVAL '7h') AS PERIOD 
+					  FROM 
+					    (SELECT email, MAX(time) as LAST_ACTION_TIME 
+					    FROM action_logs 
+					    WHERE event='Impression' and year='${year}' and month='${month}' GROUP BY email) T1 
+					    JOIN USERS U ON T1.email = U.user_email 
+					) T2 WHERE LAST_ACTION_TIME IS NOT NULL 
+					AND TO_TIMESTAMP(1417420799) - TO_TIMESTAMP(LAST_ACTION_TIME, 'YYYY-MM-DD HH24:MI:SS.US') > INTERVAL '24h';;
+					
+			    \q;
+			    wait '> \q';
+			    
+			    exit;
+			    sleep 2;
+			    
+			    su - ec2-user;
+			    sleep 2;
+			    
+			    s3cmd get s3://taas-bucket/tajo/warehouse/default/cohorts_${year_month}/part-04-000000-020;
+			    mysql --user=id --password=password  -h localhost --database=tz_users;
+			    sleep 5;
+
+			    drop table tz_users.COHORTS_${year_month};;
+			    
+			    CREATE TABLE tz_users.COHORTS_${year_month} (
+				  `user_email` VARCHAR(100) NULL,
+				  `LAST_ACTION_TIME` VARCHAR(45) NULL,
+				  `created_at` VARCHAR(45) NULL,
+				  `GROUP_ID` VARCHAR(45) NULL);;
+							    
+			    load data local infile '~/part-04-000000-020' into table COHORTS_${year_month}  fields terminated by '|';;
+			    
+			    finish!;
+				" postHandle="terminate" />
+		
+			<DATA name="IMPRESSION" preHandle="RAWDATA" commands="
+			    sudo su;
+			    su - tajo;
+			    cd /home/tajo/tajo/bin/;
+			    ./tsql;
+
+					DROP TABLE IMPRESSION_${year};;
+					
+					CREATE TABLE IMPRESSION_${year} (app_version TEXT, LAST_DATE TEXT, CNT TEXT) USING CSV WITH
+					('text.error-tolerance.max-num' = '-1');;					
+					
+					INSERT INTO IMPRESSION_${year} (app_version, LAST_DATE, CNT)
+					SELECT app_version, 
+					LAST_DATE,
+					COUNT(id) AS CNT
+					FROM (
+						SELECT 
+							email || time AS id, 
+							app_version,
+							split_part(time, 'T', 1) AS LAST_DATE
+						FROM 
+							action_logs
+						WHERE event='Impression' and year='${year}'
+					) B
+					GROUP BY app_version, LAST_DATE;;
+					
+			    \q;
+			    wait '> \q';
+			    
+			    exit;
+			    sleep 2;
+			    
+			    su - ec2-user;
+			    sleep 2;
+			    
+			    s3cmd get s3://taas-bucket/tajo/warehouse/default/impression_${year}/part-02-000000-007;
+			    mysql --user=id --password=password  -h localhost --database=tz_users;
+			    sleep 5;
+
+			    drop table tz_users.IMPRESSION_${year};;
+			    
+			    CREATE TABLE tz_users.IMPRESSION_${year} (
+				  `app_version` VARCHAR(100) NULL,
+				  `LAST_DATE` VARCHAR(45) NULL,
+				  `CNT` VARCHAR(45) NULL);;
+							    
+			    load data local infile '~/part-02-000000-007' into table IMPRESSION_${year}  fields terminated by '|';;
+			    
+			    finish!;
+				" postHandle="terminate" />
+		</DATASET>		
+	</command>
+
+</batch>

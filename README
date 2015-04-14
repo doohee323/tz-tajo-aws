@@ -1,0 +1,43 @@
+tz-tajo
+=====================================
+
+Automation in AWS console
+
+We can simulate the server work with this batch job app.
+For example, in order to compile and restart staging teton app, we do like this,
+
+sudo ssh -i /securedKeys/aaa.pem ubuntu@ec2-23-.compute-1.amazonaws.com
+
+> cd teton;
+> play clean compile stage;
+> play stop;
+> nohup ./target/start  -Dconfig.resource=stage.conf -Dhttp.port=9001 > /dev/null 2>&1 &
+
+We can make a API like this,
+
+http://ci.gettz.com:9000/launch/teton_staging
+
+For making this API, we need to define the job in this file
+/tz-jbatch/conf/batch.xml
+
+ <DATA name="teton_staging" username="ubuntu"
+ host="ec2-23-22.compute-1.amazonaws.com"
+ commands="cd teton;
+ play clean compile stage;
+ play stop;
+ nohup ./target/start  -Dconfig.resource=stage.conf -Dhttp.port=9001 > /dev/null 2>@1 @
+ " />
+
+We'll use this app for these purpose.
+
+1. CI deployment
+  - compile and deploy
+  - service restart
+2. Tajo spot instance usage
+  - make spot instance
+  - run the query
+  - load the result to mysql
+3. Batch application laucher
+
+
+

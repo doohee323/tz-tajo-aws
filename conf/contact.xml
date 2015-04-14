@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<batch>
+
+	<config>
+		<SCHEMA>
+			<COLUNM id="key" />
+			<COLUNM id="value" />
+		</SCHEMA>
+		<DATASET>
+			<DATA key="accesskey" value="AKIAJLRKPW4QI"></DATA>
+			<DATA key="secretkey" value="fuuockdwyFM0cAOdGjie"></DATA>
+			<DATA key="key_file" value="/securedKeys/aaa.pem"></DATA>
+			<DATA key="username" value="ec2-user"></DATA>
+			<DATA key="master_ip" value="10.218.189.11"></DATA>
+			<DATA key="master_external_ip" value="54.89.238.11"></DATA>
+			<DATA key="instanceNum" value="0"></DATA>
+			<DATA key="ami_id" value="ami-4a930222"></DATA>
+			<DATA key="spot_price" value="0.3"></DATA>
+			
+			<DATA key="common_spec" value="m3.medium"></DATA>
+			<DATA key="spot_spec" value="c3.2xlarge"></DATA>
+			<DATA key="key" value="aaa"></DATA>
+			<DATA key="security_group" value="taas"></DATA>
+			<DATA key="bucket" value="taas-bucket"></DATA>
+			<DATA key="region" value="us-east-1"></DATA>
+			<DATA key="s3_conf" value="s3n://taas-bucket/conf/catalog-site1.xml"></DATA>
+		</DATASET>
+	</config>
+
+<!-- 
+ 
+CREATE EXTERNAL TABLE COHORTS_201411 (user_email TEXT, LAST_ACTION_TIME TEXT, created_at TEXT, GROUP_ID TEXT) 
+	USING CSV WITH ('text.error-tolerance.max-num' = '-1') LOCATION 's3n://tz-tajo/result/';;
+ -->	
+
+	<command>
+		<SCHEMA>
+			<COLUNM id="name" />
+			<COLUNM id="commands" />
+			<COLUNM id="preHandle" />
+			<COLUNM id="postHandle" />
+		</SCHEMA>
+		
+		<!-- define commands -->
+		<DATASET>
+			<DATA name="test" preHandle="" commands="
+			    sudo su;
+			    su - tajo;
+			    cd /home/tajo/tajo/bin/;
+			    ./tsql;
+			    
+			    drop table distinct_tb;;
+					CREATE TABLE distinct_tb (distinct_id text) USING CSV PARTITION BY COLUMN (CNT TEXT);;
+			    INSERT OVERWRITE INTO distinct_tb (distinct_id) select distinct_id from CONTACTS where distinct_id = 'superbowl@gettz.com';;
+			    select * from distinct_tb;;
+			    
+			    \q;
+					exit;
+				" postHandle="" />
+				
+			<DATA name="RAWDATA" preHandle="" commands="
+			    sudo su;
+			    su - tajo;
+			    cd /home/tajo/tajo/bin/;
+			    ./tsql;
+			    
+			    DROP TABLE CONTACT;;
+
+					CREATE EXTERNAL TABLE CONTACT (
+					   created_at TIMESTAMP,
+					   key TEXT,
+					   value TEXT
+					 ) USING JSON LOCATION 's3n://screenpop/redis.json';;
+					
+					INSERT INTO CONTACT_FRIENDS (user_email, LAST_ACTION_TIME, created_at, GROUP_ID)
+					SELECT 
+					  user_email, 
+					  LAST_ACTION_TIME, 
+					  created_at,
+					  CASE
+					  WHEN PERIOD < INTERVAL '1s' THEN 'N/A'
+					  WHEN PERIOD <= INTERVAL '12h' THEN 'C0'
+					  WHEN PERIOD <= INTERVAL '24h' THEN 'C1' 
+					  WHEN PERIOD <= INTERVAL '48h' THEN 'C2'
+					  WHEN PERIOD <= INTERVAL '72h' THEN 'C3'
+					  WHEN PERIOD <= INTERVAL '96h' THEN 'C4'
+					  WHEN PERIOD <= INTERVAL '120h' THEN 'C5'
+					  WHEN PERIOD <= INTERVAL '144h' THEN 'C6'
+					  WHEN PERIOD <= INTERVAL '168h' THEN 'C7'
+					  WHEN PERIOD <= INTERVAL '192h' THEN 'C8'
+					  ELSE 'C9' 
+					  END AS GROUP_ID
+					FROM (
+					  SELECT 
+					    U.user_email, 
+					    LAST_ACTION_TIME, 
+					    created_at,
+					    TO_TIMESTAMP(LAST_ACTION_TIME, 'YYYY-MM-DD HH24:MI:SS.US') - (created_at - INTERVAL '7h') AS PERIOD 
+					  FROM 
+					    (SELECT email, MAX(time) as LAST_ACTION_TIME 
+					    FROM action_logs 
+					    WHERE event='Impression' and year='${year}' and month='${month}' GROUP BY email) T1 
+					    JOIN USERS U ON T1.email = U.user_email 
+					) T2 WHERE LAST_ACTION_TIME IS NOT NULL 
+					AND TO_TIMESTAMP(1417420799) - TO_TIMESTAMP(LAST_ACTION_TIME, 'YYYY-MM-DD HH24:MI:SS.US') > INTERVAL '24h';;
+										
+			    \q;
+			    wait '> \q';
+			    
+			    exit;
+			    sleep 2;
+			    
+			    finish!;
+				" postHandle="" />				
+		</DATASET>		
+	</command>
+
+</batch>

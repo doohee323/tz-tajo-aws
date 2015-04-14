@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project name='jbatch' default='all' basedir='.'>
+	<!-- -->
+	<property file='build.properties' />
+	<property name='app.name' value='${ant.project.name}' />
+
+	<property name='src.dir' value='.' />
+	<property name='run.dir' value='${run.base}/${run.app.name}' />
+
+	<path id="build.classpath">
+		<fileset dir="${src.lib.dir}" includes="**/*.jar" />
+	</path>
+
+	<target name='all' depends='init, deploy' />
+
+	<target name='init' description="ant init">
+		<tstamp>
+			<format property="init.time" pattern="yyyyMMdd-HHmmss" />
+		</tstamp>
+	</target>
+
+	<target name='deploy' description="deploy target folder to staging server">
+		<sync todir='${run.dir}/app' includeemptydirs='true' overwrite="true">
+			<fileset dir="${build.base}/app"/>  
+		</sync>
+		<sync todir='${run.dir}/conf' includeemptydirs='true' overwrite="true">
+			<fileset dir="${build.base}/conf"/>  
+		</sync>
+		<sync todir='${run.dir}/project' includeemptydirs='true' overwrite="true">
+			<fileset dir="${build.base}/project"/>  
+		</sync>
+		<sync todir='${run.dir}/test' includeemptydirs='true' overwrite="true">
+			<fileset dir="${build.base}/test"/>  
+		</sync>
+		<copy todir="${run.dir}" preservelastmodified="true">
+			<fileset dir="${build.base}" includes="*.sh" />
+			<fileset dir="${build.base}" includes="*.properties" />
+		</copy>
+		<exec executable="chmod">
+		  <arg line="777 ${run.dir}/stage.sh"/>
+		</exec>
+		<exec executable="chmod">
+		  <arg line="777 ${run.dir}/run.sh"/>
+		</exec>
+
+		<echo message="compile play with ${run.dir}/stage.sh" />
+		<exec executable="${run.dir}/stage.sh">
+		</exec>
+	</target>
+
+	<target name="restart">
+		<echo message="play-restart" />
+		<exec executable="wget">
+		  <arg line=" http://ci.gettz.com:9000/launch/tz-jbatch-staging"/>
+		</exec>
+	</target>
+
+</project>
