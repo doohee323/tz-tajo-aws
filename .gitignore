@@ -8,3 +8,4 @@ app/bower_components
 /.target
 /.settings
 /bin
+/public
