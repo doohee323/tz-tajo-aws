@@ -1,7 +1,7 @@
 tz-tajo
 =====================================
 
-I made a batch application for cohort analysis with TAJO. the feature is like this,
+I made a batch application for cohort analysis with Apache TAJO. the feature is like this,
 
 1. create 10 spot instances
 2. check the instances status and tajo workers' health
@@ -13,6 +13,7 @@ I made a batch application for cohort analysis with TAJO. the feature is like th
 8. load the result CSV file to the table in mysql
 9. terminate 10 spot instances
 
-The only thing I have to fix is getting the result CSV file from S3, but you need to help that. I hope that this AMI can solve this problem. Once we got a base for analysis automation tool, so we just need to change the tajo query for the next requirement.
-I understand that after verifying the data from tajo with comparing ADJUST's data, we'll develop our analysis requirement for the future.
+The only thing I have to fix is getting the result CSV file from S3.
+Once we got a base for analysis automation tool, so we just need to change the tajo query for the next requirement.
+
 
