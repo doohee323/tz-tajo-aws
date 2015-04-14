@@ -1,43 +1,18 @@
 tz-tajo
 =====================================
 
-Automation in AWS console
+I made a batch application for cohort analysis with TAJO. the feature is like this,
 
-We can simulate the server work with this batch job app.
-For example, in order to compile and restart staging teton app, we do like this,
+1. create 10 spot instances
+2. check the instances status and tajo workers' health
+3. create a tajo table on S3 for TETON log files (user, event)
+4. create a result tajo table for result saving on S3
+5. execute cohort query and insert the result to the result tajo table
+6. download the result CSV file from S3
+7. create a table in mysql
+8. load the result CSV file to the table in mysql
+9. terminate 10 spot instances
 
-sudo ssh -i /securedKeys/aaa.pem ubuntu@ec2-23-.compute-1.amazonaws.com
-
-> cd teton;
-> play clean compile stage;
-> play stop;
-> nohup ./target/start  -Dconfig.resource=stage.conf -Dhttp.port=9001 > /dev/null 2>&1 &
-
-We can make a API like this,
-
-http://ci.gettz.com:9000/launch/teton_staging
-
-For making this API, we need to define the job in this file
-/tz-jbatch/conf/batch.xml
-
- <DATA name="teton_staging" username="ubuntu"
- host="ec2-23-22.compute-1.amazonaws.com"
- commands="cd teton;
- play clean compile stage;
- play stop;
- nohup ./target/start  -Dconfig.resource=stage.conf -Dhttp.port=9001 > /dev/null 2>@1 @
- " />
-
-We'll use this app for these purpose.
-
-1. CI deployment
-  - compile and deploy
-  - service restart
-2. Tajo spot instance usage
-  - make spot instance
-  - run the query
-  - load the result to mysql
-3. Batch application laucher
-
-
+The only thing I have to fix is getting the result CSV file from S3, but you need to help that. I hope that this AMI can solve this problem. Once we got a base for analysis automation tool, so we just need to change the tajo query for the next requirement.
+I understand that after verifying the data from tajo with comparing ADJUST's data, we'll develop our analysis requirement for the future.
 
