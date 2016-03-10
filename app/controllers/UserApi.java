@@ -36,7 +36,7 @@ public class UserApi extends Controller {
         appender.write("\r\n");
       }
       appender.close();
-      // s3cmd sync /Users/mac/users s3://tz-tajo/users
+      // s3cmd sync /Users/mac/users s3://tz-tajo-aws/users
       String baseLogPath = "/Users/mac/user";
       String s3Bucket = "tz-user/";
       String cmd = "s3cmd sync " + baseLogPath + " s3://" + s3Bucket + "/";

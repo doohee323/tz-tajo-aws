@@ -31,7 +31,7 @@
 <!-- 
  
 CREATE EXTERNAL TABLE COHORTS_201411 (user_email TEXT, LAST_ACTION_TIME TEXT, created_at TEXT, GROUP_ID TEXT) 
-	USING CSV WITH ('text.error-tolerance.max-num' = '-1') LOCATION 's3n://tz-tajo/result/';;
+	USING CSV WITH ('text.error-tolerance.max-num' = '-1') LOCATION 's3n://tz-tajo-aws/result/';;
  -->	
 
 	<command>
@@ -112,7 +112,7 @@ CREATE EXTERNAL TABLE COHORTS_201411 (user_email TEXT, LAST_ACTION_TIME TEXT, cr
 					  os TEXT,
 					  createdat TEXT,
 					  ``data usage`` TEXT
-					) USING JSON WITH ('text.error-tolerance.max-num' = '-1') PARTITION BY COLUMN (year TEXT, month TEXT) LOCATION 's3n://tz-tajo/action_logs/';;
+					) USING JSON WITH ('text.error-tolerance.max-num' = '-1') PARTITION BY COLUMN (year TEXT, month TEXT) LOCATION 's3n://tz-tajo-aws/action_logs/';;
 
 			    \q;
 			    wait '> \q';

@@ -5,7 +5,7 @@
 	<classpathentry kind="lib" path="lib/gcm-server.jar"/>
 	<classpathentry kind="lib" path="lib/json-simple-1.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/play_2.10-2.1.3-sources.jar"/>
-	<classpathentry kind="lib" path="/data1/workspace/tz-tajo/target/scala-2.10/classes_managed"/>
+	<classpathentry kind="lib" path="/data1/workspace/tz-tajo-aws/target/scala-2.10/classes_managed"/>
 	<classpathentry kind="lib" path="/data3/play-2.2.0/repository/cache/play/play_2.10/jars/play_2.10-2.1.3.jar"/>
 	<classpathentry kind="lib" path="/data3/play-2.2.0/repository/cache/play/sbt-link/jars/sbt-link-2.1.3.jar"/>
 	<classpathentry kind="lib" path="/data3/play-2.2.0/repository/cache/org.javassist/javassist/jars/javassist-3.16.1-GA.jar"/>

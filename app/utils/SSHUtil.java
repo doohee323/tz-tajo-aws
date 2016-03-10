@@ -36,7 +36,7 @@ public class SSHUtil {
     commands.add("./tsql");
 
     String sql = "CREATE EXTERNAL TABLE dual_cnt (CNT text)";
-    sql += "USING CSV LOCATION 's3n://tz-tajo/test/dual_cnt';";
+    sql += "USING CSV LOCATION 's3n://tz-tajo-aws/test/dual_cnt';";
     commands.add(sql);
 
     sql = "DROP TABLE dual_cnt;";
